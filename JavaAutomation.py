@@ -16,7 +16,7 @@ import os
 
 
 
-
+#Made by Java#9999
 
 
 ROBLOX_API_URL = "https://users.roblox.com/v1/users/authenticated"   #The roblox auth api to check if the cookie is valid or not

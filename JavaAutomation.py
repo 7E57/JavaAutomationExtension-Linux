@@ -81,8 +81,8 @@ async def on_ready():
 
         print(f"\033[3A\033[2KCookie Checking ({checks}):\nMain Cookie: {main_username}\nAlt Cookie: {details_username}")
 
-        # Wait for 60 seconds before checking again
-        await asyncio.sleep(1200)
+        # Wait for 5 minutes seconds before checking again
+        await asyncio.sleep(300)
 
 
 async def check_cookie(cookie):

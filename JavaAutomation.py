@@ -52,7 +52,7 @@ async def on_ready():
     os.system('cls' if os.name == 'nt' else 'clear')
 
     print(r"""
-.gg/89EcZ4KAa6
+.gg/VXqkyu9YCF
        __                     ___         __                        __  _           
       / /___ __   ______ _   /   | __  __/ /_____  ____ ___  ____ _/ /_(_)___  ____ 
  __  / / __ `/ | / / __ `/  / /| |/ / / / __/ __ \/ __ `__ \/ __ `/ __/ / __ \/ __ \
@@ -124,7 +124,7 @@ async def send_cookie_invalid_webhook(cookie_name, command_name):
 
 @bot.command()
 async def invite(ctx):
-    response_message = "```Are you happy with JavaAutomation extension? Join our server to checkout more products like this!```\n https://discord.gg/89EcZ4KAa6"
+    response_message = "```Are you happy with JavaAutomation extension? Join our server to checkout more products like this!```\n https://discord.gg/VXqkyu9YCF"
     await ctx.send(response_message)
 
 

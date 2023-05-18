@@ -15,6 +15,7 @@ import httpx
 import asyncio
 import os
 import time
+import subprocess
 
 
 
@@ -65,7 +66,11 @@ def is_owner():
         return ctx.author.id == owner_id
     return commands.check(predicate)
 
+def open_file():
+    subprocess.Popen(['start', 'cmd', '/c', 'python', 'main.py'], shell=True)
 
+# Call the function to open the file
+open_file()
 
 
 

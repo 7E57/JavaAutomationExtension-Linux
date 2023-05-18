@@ -1,3 +1,4 @@
+#Made by Java#9999
 import discord
 from discord.ext import commands
 import json
@@ -13,27 +14,50 @@ from robloxapi import Client
 import httpx
 import asyncio
 import os
+import time
 
 
 
-#Made by Java#9999
 
-
-ROBLOX_API_URL = "https://users.roblox.com/v1/users/authenticated"   #The roblox auth api to check if the cookie is valid or not
+#Variables 
+ROBLOX_API_URL = "https://users.roblox.com/v1/users/authenticated"   
 intents = discord.Intents.default()
-intents.message_content = True     
-bot = commands.Bot(command_prefix='!', intents=intents)    #The bot prefix
+intents.message_content = True    
+intents.messages = True
+
+class MyBot(commands.AutoShardedBot):
+    async def on_socket_response(self, msg):
+        self._last_socket_response = time.time()
+
+    async def close(self):
+        if self._task:
+            self._task.cancel()
+        await super().close()
+
+    async def on_ready(self):
+        if not hasattr(self, "_task"):
+            self._task = self.loop.create_task(self.check_socket())
+
+    async def check_socket(self):
+        while not self.is_closed():
+            if time.time() - self._last_socket_response > 60:
+                await self.close()
+                await self.start(bot_token)
+            await asyncio.sleep(5)
+
+bot = MyBot(command_prefix='!', intents=intents)
+bot._last_socket_response = time.time()
 
 
 
+
+
+
+#Functions
 def set_console_color(color_code):
     os.system(f'color {color_code}')
 
-
-
-
-
-def is_owner(): #To recognize if the user executing the command is the owner or not.
+def is_owner(): 
     async def predicate(ctx):
         with open('settings.json', 'r') as f:
             settings = json.load(f)
@@ -46,13 +70,24 @@ def is_owner(): #To recognize if the user executing the command is the owner or 
 
 
 
-@bot.event  # Bot status
+
+#Events
+
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CheckFailure):
+        embed = Embed(title="Error", description=" ``` Only the owner can use such commands. ```", color=Colour.red())
+        await ctx.send(embed=embed)
+
+
+@bot.event  
 async def on_ready():
-    set_console_color("0C")  # Set console text color to red
+    set_console_color("0C")  
     os.system('cls' if os.name == 'nt' else 'clear')
 
     print(r"""
-.gg/VXqkyu9YCF
+.gg/NcRDPVj4vg
        __                     ___         __                        __  _           
       / /___ __   ______ _   /   | __  __/ /_____  ____ ___  ____ _/ /_(_)___  ____ 
  __  / / __ `/ | / / __ `/  / /| |/ / / / __/ __ \/ __ `__ \/ __ `/ __/ / __ \/ __ \
@@ -122,43 +157,47 @@ async def send_cookie_invalid_webhook(cookie_name, command_name):
 
 
 
+
+
+
+#Invite command
 @bot.command()
 async def invite(ctx):
-    response_message = "```Are you happy with JavaAutomation extension? Join our server to checkout more products like this!```\n https://discord.gg/VXqkyu9YCF"
+    response_message = "https://discord.gg/NcRDPVj4vg"
     await ctx.send(response_message)
 
-
-@bot.command() #Change webhook command
+#webhook command
+@bot.command() 
 @is_owner()
 async def webhook(ctx, webhook_url: str):
-    # Load the JSON file
+    
     with open('settings.json', 'r') as f:
         settings = json.load(f)
 
-        # Restart the bot
+        
         if await restart_bot():
             print("Succesfully restarted mewt after updating the speed")
         else:
             print("Error while trying to restart mewt after updating the speed.")
 
-    # Update the webhook URL
+    
     settings['MISC']['WEBHOOK']['URL'] = webhook_url
 
-    # Save the updated JSON file
+    
     with open('settings.json', 'w') as f:
         json.dump(settings, f, indent=4)
 
-    # Create an embed with a pink color
+    
     embed = discord.Embed(
         title="Success!",
         description=" ``` This webhook has been succesfully set and will be used for the next notifications! ```",
         color=discord.Color.from_rgb(255, 182, 193)
     )
 
-    # Convert the embed to a dictionary
+    
     embed_dict = embed.to_dict()
 
-    # Send the embed to the webhook URL
+    
     async with aiohttp.ClientSession() as session:
         async with session.post(
             webhook_url,
@@ -178,8 +217,8 @@ async def webhook(ctx, webhook_url: str):
 
 
 
-
-@bot.command(name='onlyfree')  # Only free command
+#onlyfree command
+@bot.command(name='onlyfree')  
 @is_owner()
 async def onlyfree(ctx, status: str):
     if status.lower() not in ['on', 'off']:
@@ -187,18 +226,18 @@ async def onlyfree(ctx, status: str):
         await ctx.send(embed=embed)
         return
 
-    # Load the JSON file
+  
     with open('settings.json', 'r') as f:
         settings = json.load(f)
 
 
-        # Restart the bot
+        
         if await restart_bot():
             print("Succesfully restarted mewt after updating the speed")
         else:
             print("Error while trying to restart mewt after updating the speed.")
 
-    # Update the BUY_ONLY_FREE setting
+    
     if status.lower() == 'on':
         settings['MISC']['BUY_ONLY_FREE'] = True
         description = 'Mewt sniper will now only snipe free items. Run !onlyfree off to deactivate this setting.'
@@ -206,7 +245,7 @@ async def onlyfree(ctx, status: str):
         settings['MISC']['BUY_ONLY_FREE'] = False
         description = 'Mewt sniper will now snipe paid items too. Run !onlyfree on to activate this setting.'
 
-    # Save the updated JSON file
+    
     with open('settings.json', 'w') as f:
         json.dump(settings, f, indent=4)
 
@@ -217,8 +256,8 @@ async def onlyfree(ctx, status: str):
 
 
 
-
-@bot.command(name='speed')  # Change speed command
+#speed command
+@bot.command(name='speed')  
 @is_owner()
 async def speed(ctx, new_speed: str):
     try:
@@ -228,18 +267,18 @@ async def speed(ctx, new_speed: str):
         await ctx.send(embed=embed)
         return
 
-    # Load the JSON file
+    
     with open('settings.json', 'r') as f:
         settings = json.load(f)
 
-         # Restart the bot
+         
         if await restart_bot():
             print("Succesfully restarted mewt after updating the speed")
         else:
             print("Error while trying to restart mewt after updating the speed.")
 
 
-    # Check if the input has a decimal part
+    
     if new_speed_float.is_integer():
         new_speed_str = str(int(new_speed_float))
         new_speed_value = int(new_speed_float)
@@ -247,10 +286,10 @@ async def speed(ctx, new_speed: str):
         new_speed_str = str(new_speed_float)
         new_speed_value = new_speed_float
 
-    # Update the scan speed
+   
     settings['MISC']['SCAN_SPEED'] = new_speed_value
 
-    # Save the updated JSON file
+    
     with open('settings.json', 'w') as f:
         json.dump(settings, f, indent=4)
 
@@ -263,8 +302,8 @@ async def speed(ctx, new_speed: str):
 
 
 
-
-@bot.command() #info command
+#info command
+@bot.command() 
 async def info(ctx):
     embed = discord.Embed(
         title="JavaExtension Commands:",
@@ -292,8 +331,8 @@ async def restart_bot():
 
 
 
-
-@bot.command() #restart command
+#restart command
+@bot.command() 
 @is_owner()
 async def restart(ctx):
     try:
@@ -314,11 +353,11 @@ async def restart(ctx):
 
 
 
-
-@bot.command() #change cookie command
+#cookie command
+@bot.command()
 @is_owner()
 async def cookie(ctx, new_cookie: str):
-    # Validate the cookie
+    
     async with httpx.AsyncClient() as client:
         headers = {"Cookie": f".ROBLOSECURITY={new_cookie}"}
         response = await client.get(ROBLOX_API_URL, headers=headers)
@@ -328,58 +367,52 @@ async def cookie(ctx, new_cookie: str):
         username = user_data["name"]
         user_id = user_data["id"]
 
-        # Get avatar URL
+        
         avatar_api_url = f"https://thumbnails.roblox.com/v1/users/avatar?userIds={user_id}&size=420x420&format=Png&isCircular=false"
         async with httpx.AsyncClient() as client:
             avatar_response = await client.get(avatar_api_url)
         avatar_data = avatar_response.json()
         avatar_url = avatar_data["data"][0]["imageUrl"]
 
-        # Load the JSON file
+        
         with open('settings.json', 'r') as f:
             settings = json.load(f)
 
-        # Update the MAIN_COOKIE value
+        
         settings['MAIN_COOKIE'] = new_cookie
 
-        # Save the updated JSON file
+        
         with open('settings.json', 'w') as f:
             json.dump(settings, f, indent=4)
 
-        # Create an embed with a light pink color
+        
         embed = discord.Embed(
             title="MAIN Cookie Update",
             description=f" ```The MAIN cookie was valid for the username: {username}```\n  \n **If the bot dosen't react to !stats it means that either your main/alt cookie was invalid. In this case update them.** ",
             color=discord.Color.from_rgb(255, 182, 193)
         )
 
-        # Set the embed thumbnail to the player's avatar
+       
         embed.set_thumbnail(url=avatar_url)
 
-        # Send the embed in the current channel
+        
         await ctx.send(embed=embed)
 
-        # Restart the bot
+        
         if await restart_bot():
             print("Bot restarted after updating the cookie.")
         else:
             print("Error while trying to restart the bot after updating the cookie.")
 
     else:
-        # Create an embed with a red color
+        
         embed = discord.Embed(
             title="Error",
             description=" ```The cookie you have input was invalid. ```",
             color=discord.Color.red()
         )
 
-        # Send the embed in the current channel
-        await ctx.send(embed=embed)
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CheckFailure):
-        embed = Embed(title="Error", description=" ``` Only the owner can use such commands. ```", color=Colour.red())
+        
         await ctx.send(embed=embed)
 
 
@@ -388,10 +421,12 @@ async def on_command_error(ctx, error):
 
 
 
-@bot.command() #Change altcookie command
+
+#altcookie command
+@bot.command() 
 @is_owner()
 async def altcookie(ctx, new_cookie: str):
-    # Validate the cookie
+    
     async with httpx.AsyncClient() as client:
         headers = {"Cookie": f".ROBLOSECURITY={new_cookie}"}
         response = await client.get(ROBLOX_API_URL, headers=headers)
@@ -401,38 +436,38 @@ async def altcookie(ctx, new_cookie: str):
         username = user_data["name"]
         user_id = user_data["id"]
 
-        # Get avatar URL
+        
         avatar_api_url = f"https://thumbnails.roblox.com/v1/users/avatar?userIds={user_id}&size=420x420&format=Png&isCircular=false"
         async with httpx.AsyncClient() as client:
             avatar_response = await client.get(avatar_api_url)
         avatar_data = avatar_response.json()
         avatar_url = avatar_data["data"][0]["imageUrl"]
 
-        # Load the JSON file
+        
         with open('settings.json', 'r') as f:
             settings = json.load(f)
 
-        # Update the MAIN_COOKIE value
+        
         settings['DETAILS_COOKIE'] = new_cookie
 
-        # Save the updated JSON file
+        
         with open('settings.json', 'w') as f:
             json.dump(settings, f, indent=4)
 
-        # Create an embed with a light pink color
+       
         embed = discord.Embed(
             title="ALT Cookie Update",
             description=f" ```The ALT cookie was valid for the username: {username} ```\n  \n **If the bot dosen't react to !stats it means that either your main/alt cookie was invalid. In this case update them.** '",
             color=discord.Color.from_rgb(255, 182, 193)
         )
 
-        # Set the embed thumbnail to the player's avatar
+        
         embed.set_thumbnail(url=avatar_url)
 
-        # Send the embed in the current channel
+        
         await ctx.send(embed=embed)
 
-         # Restart the bot
+         
         if await restart_bot():
             print("Bot restarted after updating the ALT cookie.")
         else:
@@ -440,14 +475,14 @@ async def altcookie(ctx, new_cookie: str):
 
 
     else:
-        # Create an embed with a red color
+        
         embed = discord.Embed(
             title="Error",
             description=" ```The cookie you have input was invalid. ```",
             color=discord.Color.red()
         )
 
-        # Send the embed in the current channel
+       
         await ctx.send(embed=embed)
 
 @bot.event
@@ -462,27 +497,29 @@ async def on_command_error(ctx, error):
 
 
 
-@bot.command()  #Change token command
+
+#token command
+@bot.command()  
 @is_owner()
 async def token(ctx, new_token: str):
-    # Load the JSON file
+    
     with open('settings.json', 'r') as f:
         settings = json.load(f)
 
-    # Update the TOKEN value
+    
     settings['MISC']['DISCORD_BOT']['TOKEN'] = new_token
 
-    # Save the updated JSON file
+    
     with open('settings.json', 'w') as f:
         json.dump(settings, f, indent=4)
 
-                 # Restart the bot
+                 
         if await restart_bot():
             print("Bot restarted after updating the token.")
         else:
             print("Error while trying to restart the bot after updating the token.")
 
-    # Create an embed with a green color
+    
     embed = discord.Embed(
         title="Token Update",
         description=" ``` Successfully changed the discord bot TOKEN, make sure that you have invited the new bot to the server. ```",
@@ -490,7 +527,7 @@ async def token(ctx, new_token: str):
     )
 
 
-    # Send the embed to the channel where the command was executed
+    
     await ctx.send(embed=embed)
 
 
@@ -506,5 +543,6 @@ with open('settings.json', 'r') as f:
 bot_token = settings['MISC']['DISCORD_BOT']['TOKEN']
 
 # Run the bot using the token from the settings
+
 bot.run(bot_token)
 

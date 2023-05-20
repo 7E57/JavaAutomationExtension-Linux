@@ -8,7 +8,7 @@ Once you are done drag JavaAutomation.py to the mewt sniper folder and run JavaA
 
 #Remember to join Java Automation server to get updates and news: https://discord.gg/NcRDPVj4vg
 
-
+TUTORIAL:     https://www.youtube.com/watch?v=f1h0D4SapQ0
 
 
 COMMANDS:

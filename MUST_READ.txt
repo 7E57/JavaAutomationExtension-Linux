@@ -10,6 +10,7 @@ Once you are done drag JavaAutomation.py to the mewt sniper folder and run JavaA
 
 JOIN THE DISCORD SERVER IF YOU ARE HAVING ISSUES, OR DM Java#9999
 
+TUTORIAL: https://www.youtube.com/watch?v=f1h0D4SapQ0
 
 COMMANDS:
 > !prefix

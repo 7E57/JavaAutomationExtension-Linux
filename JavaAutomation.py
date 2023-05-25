@@ -178,7 +178,7 @@ async def on_ready():
 #Invite command
 @bot.command()
 async def invite(ctx):
-    response_message = "https://discord.gg/NcRDPVj4vg"
+    response_message = "https://discord.gg/javaw"
     await ctx.send(response_message)
 
 #prefix command

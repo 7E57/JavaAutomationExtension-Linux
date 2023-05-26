@@ -6,7 +6,7 @@
 Once you are done drag JavaAutomation.py to the mewt sniper folder and run JavaAutomation.py (it will run mewt automatcally)
 
 
-#Remember to join Java Automation server to get updates and news: https://discord.gg/NcRDPVj4vg
+#Remember to join Java Automation server to get updates and news: https://discord.gg/javaw
 
 TUTORIAL:     https://www.youtube.com/watch?v=f1h0D4SapQ0
 

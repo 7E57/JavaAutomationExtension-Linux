@@ -1,4 +1,5 @@
-#Made by Java#9999
+#made by Java#9999 for mewt .gg/mewt
+#join JavaAutomation: .gg/javaw
 import discord
 from discord.ext import commands
 import json
@@ -9,7 +10,7 @@ import psutil
 import subprocess
 import signal
 from discord import Embed, Colour
-from discord import Game
+from discord import Game  
 from robloxapi import Client
 import httpx
 import asyncio
@@ -19,24 +20,63 @@ import subprocess
 import pyautogui
 from io import BytesIO
 import requests
-from typing import Union
+from typing import Union  
+import importlib
+from datetime import datetime
+import threading
 
 
 
-# Run main.py when JavaAutomation.py is executed
-subprocess.Popen(['python', 'main.py'])
+# Load the user ID from userID.txt
+with open("userID.txt") as f:
+    user_id = int(f.read())
 
 
-#Variables 
+
+#Load Settings
+with open('settings.json') as f:
+    settings = json.load(f)
+
+webhook_url = settings['MISC']['WEBHOOK']['URL']
+autorestart_notify_enabled = True
+#Variables
 ROBLOX_API_URL = "https://users.roblox.com/v1/users/authenticated"   
 intents = discord.Intents.default()
 intents.message_content = True    
 intents.messages = True
 autorestart_task = None
+autorestart_minutes = None
 start_time = None
+print_cache = {}
+discord_id = settings['MISC']['DISCORD_BOT']['OWNER_USER_ID']
+whitelist = [discord_id]
+type_to_id = dict([ ("Hat", 8),
+("HairAccessory", 41), ("FaceAccessory", 42),
+("NeckAccessory", 43),
+("ShoulderAccessory", 44),
+("FrontAccessory", 45),
+("BackAccessory", 46),
+("WaistAccessory", 47),
+("TShirtAccessory", 64),
+("ShirtAccessory", 65),
+("PantsAccessory", 66),
+("JacketAccessory", 67),
+("SweaterAccessory", 68),
+("ShortsAccessory", 69)
+])
+serials = dict([ ("last_bought_needs_update", False),
+("update_trigger", False),
+("last_updated", False),
+("error", None),
+("status", None),
+("inventory_data", [])
+])
 
+types = ''
+for key in type_to_id.keys(): types += key + ','
+types = types[:-1]
 
-
+#Class
 class MyBot(commands.AutoShardedBot):
     async def on_socket_response(self, msg):
         self._last_socket_response = time.time()
@@ -62,6 +102,14 @@ bot._last_socket_response = time.time()
 
 
 #Functions
+def user_can_use_bot(user):
+    return str(user.id) in whitelist or str(user) in whitelist
+
+def bot_login(token, ready_event):
+    intents = discord.Intents.default()
+    intents.message_content = True  
+    bot = commands.Bot(command_prefix="!",
+                       intents=intents)
 
 def is_owner(): 
     async def predicate(ctx):
@@ -132,6 +180,163 @@ def update_settings(new_settings):
     with open("settings.json", "w") as file:
         json.dump(new_settings, file, indent=4)
 
+def get_request(url, timeout=4, cursor=None):
+    try:
+        response = requests.get(url if cursor == None else url + f"&cursor={cursor}", timeout=timeout,
+                                cookies={ ".ROBLOSECURITY": settings["MAIN_COOKIE"]})
+    except Exception as e:
+        serials["error"] = str(e)
+        print("Couldn't update inventory:", serials["error"])
+        return False
+    
+    serials["error"] = None
+    return response.json()   
+
+def update_serial_status(message, print_msg):
+    if print_msg: print(message)
+    serials["status"] = message
+
+def sync_inventory(wait=2, max_retry=3, print=False):
+    overall_inv_url = f"https://inventory.roblox.com/v2/users/{user_id}/inventory?assetTypes={types}&filterDisapprovedAssets=false&limit=100&sortOrder=Desc"
+    __builtins__.print("Succesfully started the inventory load for the provided roblox ID")  # Call built-in print()
+    type_to_oldest = {}
+    item_counts = {}
+    cursor = None
+    retry_count = 0
+
+    if len(serials["inventory_data"]) == 0:
+        count = 0
+        iters = 100
+        update_serial_status("Loading last 1000 limiteds from inventory", print)
+
+
+        while count < iters:
+            response = get_request(overall_inv_url, cursor=cursor)
+            time.sleep(wait)
+            if not response:
+                retry_count += 1
+                if retry_count <= max_retry:
+                    update_serial_status(serials["error"] + ". Retrying", print)
+                    continue
+                else:
+                    update_serial_status("Too many retries", print)
+                    return False
+            cursor = response["nextPageCursor"]
+            data = response["data"]
+
+            for item in data:
+                this_seconds = datetime.fromisoformat(item["created"]).timestamp()
+                type_name = item["assetType"]
+                asset_id = item["assetId"]
+
+                if asset_id in item_counts: item_counts[asset_id] += 1
+                else: item_counts[asset_id] = 1
+                if type_name not in type_to_oldest or this_seconds < type_to_oldest[type_name][0]:
+                    type_to_oldest[type_name] = [this_seconds, asset_id]
+
+            count += 1
+            if cursor == None: break
+    else:
+        resolved = False
+        update_serial_status("Updating the inventory with the latest items...", print)
+
+        while not resolved:
+            response = get_request(overall_inv_url, cursor=cursor)
+            time.sleep(wait)
+            if not response:
+                retry_count += 1
+                if retry_count <= max_retry:
+                    update_serial_status(serials["error"] + ". Retrying", print)
+                    continue
+                else:
+                    update_serial_status("Too many retries", print)
+                    return False
+            current_recent = serials["inventory_data"][0]["created_timestamp"]
+            cursor = response["nextPageCursor"]
+            data = response["data"]
+
+            for item in data:
+                this_seconds = datetime.fromisoformat(item["created"]).timestamp()
+                if this_seconds <= current_recent:
+                    resolved = True
+                    break
+                type_name = item["assetType"]
+                asset_id = item["assetId"]
+
+                if asset_id in item_counts: item_counts[asset_id] += 1
+                else: item_counts[asset_id] = 1
+                if type_name not in type_to_oldest or this_seconds < type_to_oldest[type_name][0]:
+                    type_to_oldest[type_name] = [this_seconds, asset_id]
+
+            if cursor == None: resolved = True
+    
+    to_add = []
+    for type_name, oldest in type_to_oldest.items():
+        type_id = type_to_id[type_name]
+        url = f"https://inventory.roblox.com/v2/users/{user_id}/inventory/{type_id}?limit=100&sortOrder=Desc"
+        cursor = None
+        resolved = False
+        retry_count = 0
+        update_serial_status(f"Loading: {type_name}", print)
+
+        while not resolved:
+            response = get_request(url, cursor=cursor)
+            time.sleep(wait)
+            if not response:
+                retry_count += 1
+                if retry_count <= max_retry:
+                    update_serial_status(serials["error"] + ". Retrying", print)
+                    continue
+                else:
+                    update_serial_status("Too many retries", print)
+                    return False
+            cursor = response["nextPageCursor"]
+            data = response["data"]
+            curr_count = 0
+            end_count = item_counts[oldest[1]]
+
+            for item in data:
+                serial = item["serialNumber"] if "serialNumber" in item else "none"
+                if item["assetId"] == oldest[1]:
+                    curr_count += 1
+                    if curr_count == end_count:
+                        resolved = True
+                        break
+                if item["collectibleItemId"] != None:
+                    this_seconds = datetime.fromisoformat(item["created"]).timestamp()
+                    to_add.append({
+                            "asset_id": item["assetId"],
+                            "asset_name": item["assetName"],
+                            "serial": serial,
+                            "created_timestamp": this_seconds
+                        })
+
+            if cursor == None: resolved = True
+
+    to_add.sort(key=lambda obj : obj["created_timestamp"], reverse=True)
+    serials["inventory_data"] = to_add + serials["inventory_data"]
+
+    update_serial_status("Finished updating", print)
+    serials["last_updated"] = time.time()
+    return True
+
+async def get_user_id_from_cookie(cookie):
+    api_url = "https://www.roblox.com/mobileapi/userinfo"
+    headers = {"Cookie": f".ROBLOSECURITY={cookie}"}
+    async with httpx.AsyncClient() as client:
+        response = await client.get(api_url, headers=headers)
+    if response.status_code == 200:
+        user_data = response.json()
+        return user_data["UserID"]
+    else:
+        return None
+
+
+if user_id:
+    print("Loading inventory data from roblox...\n")
+    sync_inventory(wait=1, max_retry=8, print=True)
+
+
 #Events
 @bot.event
 async def on_command_error(ctx, error):
@@ -172,13 +377,13 @@ async def on_ready():
 
 
 
-#Commands:
 
+#Commands:
 
 #Invite command
 @bot.command()
 async def invite(ctx):
-    response_message = "https://discord.gg/javaw"
+    response_message = "https://discord.gg/NcRDPVj4vg"
     await ctx.send(response_message)
 
 #prefix command
@@ -193,7 +398,6 @@ async def prefix(ctx, new_prefix: str):
         color=discord.Color.from_rgb(255, 182, 193)
     )
     await ctx.send(embed=embed)
-
 
 #screenshot
 @bot.command()
@@ -227,7 +431,6 @@ async def screenshot(ctx):
             await ctx.send(file=file, embed=embed)
         except discord.HTTPException:
             await ctx.send("Failed to send the screenshot to the webhook.")
-
 
 #webhook command
 @bot.command() 
@@ -344,6 +547,82 @@ async def speed(ctx, new_speed: str):
     else:
             print("Error while trying to restart mewt after updating the speed.")
 
+
+#inventory command        
+@bot.command()
+@is_owner()  
+async def inventory(ctx, *args):
+    if len(serials["inventory_data"]) == 0:
+        await ctx.reply("Still working...")
+    if not user_can_use_bot(ctx.message.author): return  
+    cache = serials["inventory_data"]
+    if not user_id:
+        await ctx.reply("Set the robloxID by using the robloxid command.")    
+        return
+    if len(cache) == 0:
+        await ctx.reply("inventory has still not loaded")
+        return
+        
+    color = discord.Color.from_rgb(255, 182, 193)
+    page = 1
+    max_page = (len(cache) / 10).__ceil__()
+        
+    avatar_api_url = f"https://thumbnails.roblox.com/v1/users/avatar?userIds={user_id}&size=420x420&format=Png&isCircular=false"    
+    async with httpx.AsyncClient() as client:
+        avatar_response = await client.get(avatar_api_url)  
+    avatar_data = avatar_response.json()    
+    avatar_url = avatar_data["data"][0]["imageUrl"]
+    username_api_url = f"https://users.roblox.com/v1/users/{user_id}"
+    async with httpx.AsyncClient() as client:
+     response = await client.get(username_api_url)
+    username = response.json()["name"]
+
+    embed = discord.Embed(title=f"{username}'s inventory:", color=color)
+ 
+    embed.set_footer(text=f".gg/javaw {page}/{max_page}")
+    if len(args) > 0:
+            if not args[0].isnumeric():
+                await ctx.reply("The page must be a numeric value.")
+                return
+            if int(args[0]) > max_page:
+                await ctx.reply(f"You went too far, your current maximum page is:{max_page}")
+                return
+            page = int(args[0])
+    embed = discord.Embed(title=f"Roblox UserID inventory:", color=color)  
+    embed.set_footer(text=f".gg/javaw {page}/{max_page}")
+
+    desc = f"Total cached: {len(cache)}\n"
+    if serials["last_bought_needs_update"] != False or serials["update_trigger"]:
+            if serials["last_bought_needs_update"] != False: desc += f"Items bought <t:{int(serials['last_bought_needs_update'])}:R>, awaiting update...\n"
+            elif serials["update_trigger"]: desc += "Update triggered, awaiting update...\n"
+            desc += f"Status: {serials['status']}\n"
+            desc += f"Errors: {serials['error'] if serials['error'] != None else 'none'}\n"
+    desc += f"Last updated: <t:{int(serials['last_updated'])}:R>\n\n"
+        
+    page_list = cache[(page - 1) * 10 : page * 10]
+    for item in page_list:
+            desc += f"[{item['asset_name']}](https://roblox.com/catalog/{item['asset_id']})\n"
+            desc += f"`#{item['serial']}` | <t:{int(item['created_timestamp'])}:R>\n\n"
+
+    embed.description = desc[:4000]
+    embed.set_thumbnail(url=avatar_url)
+    await ctx.send(embed=embed)
+
+
+
+
+
+#updateinventory
+@bot.command(name='updateinv')
+@is_owner()
+async def updateinv(ctx):
+        if not user_can_use_bot(ctx.message.author): return
+        if serials["update_trigger"] or serials["last_bought_needs_update"]:
+            await ctx.reply("Update already underway!")
+            return    
+        await ctx.reply("Starting update. Monitor progress with the inventory command")
+        serials["update_trigger"] = True
+
 #info command
 @bot.command()
 async def info(ctx):
@@ -355,6 +634,10 @@ async def info(ctx):
     embed.add_field(name=f"{prefix}prefix", value="To change your prefix to anything you want (**When you close it will go back to !**)", inline=False)
     embed.add_field(name=f"{prefix}cookie", value="To change your main cookie", inline=False)
     embed.add_field(name=f"{prefix}altcookie", value="To change your alt cookie", inline=False)
+    embed.add_field(name=f"{prefix}robloxid", value="To add the robloxID for the inventory loading (may be broken for some users, incase change the id from the code)", inline=False)
+    embed.add_field(name=f"{prefix}inventory", value="To view the inventory and serial of the robloxID you have selected.", inline=False)
+    embed.add_field(name=f"{prefix}check main", value="To check if your main cookie is valid", inline=False)
+    embed.add_field(name=f"{prefix}check alt", value="To check if your alt cookie is valid", inline=False)
     embed.add_field(name=f"{prefix}webhook", value="To change your webhook", inline=False)
     embed.add_field(name=f"{prefix}token", value="To change your Discord bot token", inline=False)
     embed.add_field(name=f"{prefix}speed", value="To change your speed", inline=False)
@@ -391,9 +674,6 @@ async def removeall(ctx):
     else:
             print("Error while trying to restart the bot after updating the cookie.")
 
-
-    
-
 #restart command
 @bot.command()
 @is_owner()
@@ -412,6 +692,7 @@ async def restart(ctx):
 async def more(ctx):
     settings = load_settings()
 
+    
     main_cookie = settings['MAIN_COOKIE']
     details_cookie = settings['DETAILS_COOKIE']
     owner_id = settings['MISC']['DISCORD_BOT']['OWNER_USER_ID']
@@ -427,6 +708,11 @@ async def more(ctx):
 
     if start_time is not None:
         runtime = int(time.time() - start_time)
+        minutes = runtime // 60
+        seconds = runtime % 60
+        days = minutes // 1440
+        minutes = minutes % 1440
+        runtime = f"{days} days, {minutes} minutes and {seconds} seconds"
     else:
         runtime = "Unknown"
 
@@ -439,12 +725,10 @@ async def more(ctx):
     embed.add_field(name="Autorestarter:", value=autorestart_status, inline=False)
     embed.add_field(name="Scan speed:", value=scan_speed, inline=False)
     embed.add_field(name="Watching:", value=watching if watching else "No items", inline=False)
-    embed.add_field(name="Runtime:", value=f"{runtime} seconds", inline=False)
+    embed.add_field(name="Runtime:", value=runtime, inline=False)
     embed.set_footer(text="A bot by Java#9999")
 
     await ctx.send(embed=embed)
-
-
 
 #cookie command
 @bot.command()
@@ -603,8 +887,6 @@ async def token(ctx, new_token: str):
     else:
             print("Error while trying to restart the bot after updating the token.")
 
-
-
 #Autorestart command
 @bot.command()
 @is_owner()
@@ -666,15 +948,105 @@ async def autorestart_task_fn(minutes: int, ctx):
         await asyncio.sleep(minutes * 60)
         await restart_bot(ctx)
 
+@bot.command()
+@is_owner()  
+async def robloxid(ctx, new_id: int):
+    global user_id
+    user_id = new_id
+    
+    # Update the userID.txt file    
+    with open("userID.txt", "w") as f:
+        f.write(str(new_id))
+        
+    # Clear cached inventory data
+    serials["inventory_data"] = []
+    
+    # Send loading message    
+    embed = discord.Embed(title="Loading...", description="Loading the user inventory....wait for my notification and run !inventory again.", color=Colour.orange())
+    await ctx.send(embed=embed)
+    
+    # Reload inventory data    
+    sync_inventory(wait=1, max_retry=8, print=True)
+    
+    embed = discord.Embed(title="Roblox ID Updated!", description=f"The Roblox ID has been updated to: `{new_id}` and the inventory cache has been repopulated.", color=Colour.from_rgb(255, 182, 193))
+
+    await ctx.send(embed=embed)
 
 
-# Load the JSON file
-with open('settings.json', 'r') as f:
-    settings = json.load(f)
+#cookie check
+@bot.command()
+@is_owner()
+async def check(ctx, cookie_type: str):
+    if cookie_type.lower() not in ['main', 'alt']:
+        await ctx.send('Invalid cookie type. Must be `main` or `alt`.')
+        return
+    
+    with open('settings.json') as f:
+        settings = json.load(f)
+        
+    if cookie_type.lower() == 'main':
+        cookie = settings['MAIN_COOKIE']
+    else: 
+        cookie = settings['DETAILS_COOKIE']
+        
+    valid, username = await check_cookie(cookie)
+    
+    if valid:
+        user_id = await get_user_id_from_cookie(cookie)  # Get the user ID from the cookie
+        avatar_api_url = f"https://thumbnails.roblox.com/v1/users/avatar?userIds={user_id}&size=420x420&format=Png&isCircular=false"
+        async with httpx.AsyncClient() as client:
+            avatar_response = await client.get(avatar_api_url)
+        avatar_data = avatar_response.json()
+        avatar_url = avatar_data["data"][0]["imageUrl"]
+        
+        embed = Embed(title="Cookie check result:", color=Colour.from_rgb(255, 182, 193))
+        embed.add_field(name="Username", value=username)
+        embed.add_field(name="Cookie type", value=cookie_type.title())
+        embed.set_thumbnail(url=avatar_url)
+        await ctx.send(embed=embed)
+        
+    else:
+        embed = Embed(title="Cookie check result:", description="The {} cookie in your settings was invalid".format(cookie_type), color=Colour.red()) 
+        await ctx.send(embed=embed)
+
+# Run main.py when JavaAutomation.py is executed
+subprocess.Popen(['python', 'main.py'])
 
 # Get the bot token from the settings
 bot_token = settings['MISC']['DISCORD_BOT']['TOKEN']
 
 # Run the bot using the token from the settings
-
 bot.run(bot_token)
+
+
+def searchinventory(): 
+    while True:
+        if not serials["last_bought_needs_update"] and not serials["update_trigger"]: continue
+        if time.time() - serials["last_bought_needs_update"] > 5 or serials["update_trigger"]:
+            sync_inventory()
+            serials["last_bought_needs_update"] = False
+            serials["update_trigger"] = False
+        time.sleep(0.5)
+if user_id:
+    sync_inventory()
+    serials_thread = threading.Thread(target=searchinventory, daemon=True)
+    serials_thread.start()
+        
+
+try:
+    if not user_id: print("The robloxID was not found. use robloxid command to update it.")
+    else:
+        sync_inventory(wait=1, max_retry=8, print=True)
+        print("Collecting every inventory data for ID: {user_id}")
+        serials_thread = threading.Thread(target=searchinventory, daemon=True)
+        serials_thread.start()
+
+    time.sleep(2)
+except (KeyboardInterrupt, SystemExit):
+    print("Exit status...")
+    sys.exit(1)
+
+while True:
+    webhook_color = discord.Color.from_rgb(255, 182, 193)
+    stage = 0
+

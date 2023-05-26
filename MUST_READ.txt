@@ -6,33 +6,12 @@
 Once you are done drag JavaAutomation.py to the mewt sniper folder and run JavaAutomation.py (it will run mewt automatcally)
 
 
-#Remember to join Java Automation server to get updates and news: https://discord.gg/NcRDPVj4vg
+#Remember to join Java Automation server to get updates and news: https://discord.gg/javaw
 
 JOIN THE DISCORD SERVER IF YOU ARE HAVING ISSUES, OR DM Java#9999
 
 TUTORIAL: https://www.youtube.com/watch?v=f1h0D4SapQ0
 
-COMMANDS:
-> !prefix
-> !cookie
-> !altcookie
-> !webhook
-> !token
-> !speed
-> !onlyfree off
-> !onlyfree on
-> !add                    (only works with ! prefix)
-> !remove                 (only works with ! prefix)
-> !watching               (only works with ! prefix)
-> !stats                  (only works with ! prefix)
-> !removeall
-> !more
-> !restart
-> !autorestart (minutes)
-> !autorestart off
-> !autorestart
-> !screenshot
-> !invite
 
 
 -Cookie checker: Every 5 minutes it checks if the cookie is valid or not and if it is not it will send a notification to your webhook warning you about this.

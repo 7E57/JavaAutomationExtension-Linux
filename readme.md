@@ -11,27 +11,7 @@ Once you are done drag JavaAutomation.py to the mewt sniper folder and run JavaA
 TUTORIAL:     https://www.youtube.com/watch?v=f1h0D4SapQ0
 
 
-COMMANDS:
-> !prefix
-> !cookie
-> !altcookie
-> !webhook
-> !token
-> !speed
-> !onlyfree off
-> !onlyfree on
-> !add                    (only works with ! prefix)
-> !remove                 (only works with ! prefix)
-> !watching               (only works with ! prefix)
-> !stats                  (only works with ! prefix)
-> !removeall
-> !more
-> !restart
-> !autorestart (minutes)
-> !autorestart off
-> !autorestart
-> !screenshot
-> !invite
+JavaAutomation gives you FULL control on mewt sniper just by using discord commands!
 
 
 

@@ -1,0 +1,12 @@
+psutil
+robloxapi
+pyautogui
+selenium
+pillow
+requests
+colorama
+python-socketio
+"python-socketio[client]"
+discord.py
+rgbprint
+pyarmor

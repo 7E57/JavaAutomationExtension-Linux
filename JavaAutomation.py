@@ -131,11 +131,8 @@ def restart_main_py():
             if "main.py" in cmdline[1]:
                 pid = proc.pid
                 os.kill(pid, signal.SIGTERM)
-
-    python_executable = sys.executable
-    script_path = os.path.join(os.path.dirname(__file__), 'main.py')
-
-    subprocess.Popen([python_executable, script_path])
+    
+    subprocess.Popen(['python', 'main.py'])
 
 async def restart_bot(ctx):
     try:
@@ -224,10 +221,7 @@ def sync_inventory(wait=2, max_retry=3, print=False):
                 else:
                     update_serial_status("Too many retries", print)
                     return False
-            cursor = response.get("nextPageCursor")
-            if cursor is None:
-                break
-
+            cursor = response["nextPageCursor"]
             data = response["data"]
 
             for item in data:
@@ -258,11 +252,7 @@ def sync_inventory(wait=2, max_retry=3, print=False):
                     update_serial_status("Too many retries", print)
                     return False
             current_recent = serials["inventory_data"][0]["created_timestamp"]
-            cursor = response.get("nextPageCursor")
-            if cursor is None:
-                print("No 'nextPageCursor' found in the response.")
-                break
-
+            cursor = response["nextPageCursor"]
             data = response["data"]
 
             for item in data:
@@ -300,10 +290,7 @@ def sync_inventory(wait=2, max_retry=3, print=False):
                 else:
                     update_serial_status("Too many retries", print)
                     return False
-            cursor = response.get("nextPageCursor")
-            if cursor is None:
-                break
-
+            cursor = response["nextPageCursor"]
             data = response["data"]
             curr_count = 0
             end_count = item_counts[oldest[1]]
@@ -644,30 +631,30 @@ async def info(ctx):
         title="JavaExtension Commands:",
         color=discord.Color.from_rgb(255, 182, 193)
     )
-    embed.add_field(name=f"{prefix}prefix", value="To change your prefix to anything you want (**When you close it will go back to !**)", inline=False)
-    embed.add_field(name=f"{prefix}cookie", value="To change your main cookie", inline=False)
-    embed.add_field(name=f"{prefix}altcookie", value="To change your alt cookie", inline=False)
-    embed.add_field(name=f"{prefix}robloxid", value="To add the robloxID for the inventory loading (may be broken for some users, incase change the id from the code)", inline=False)
-    embed.add_field(name=f"{prefix}inventory", value="To view the inventory and serial of the robloxID you have selected.", inline=False)
-    embed.add_field(name=f"{prefix}check main", value="To check if your main cookie is valid", inline=False)
-    embed.add_field(name=f"{prefix}check alt", value="To check if your alt cookie is valid", inline=False)
-    embed.add_field(name=f"{prefix}webhook", value="To change your webhook", inline=False)
-    embed.add_field(name=f"{prefix}token", value="To change your Discord bot token", inline=False)
-    embed.add_field(name=f"{prefix}speed", value="To change your speed", inline=False)
-    embed.add_field(name=f"{prefix}onlyfree off", value="To snipe paid items too", inline=False)
-    embed.add_field(name=f"{prefix}onlyfree on", value="To snipe free items only", inline=False)
-    embed.add_field(name=f"!add", value="To add an id to the watchlist **(only works with prefix !)**", inline=False)
-    embed.add_field(name=f"!remove", value="To remove an id to the watchlist **(only works with prefix !)**", inline=False)
-    embed.add_field(name=f"!watching", value="To see the list of the IDS being watched **(only works with prefix !)**", inline=False)
-    embed.add_field(name=f"!stats", value="To see your current stats on the sniper **(Only works with ! prefix)**", inline=False)
-    embed.add_field(name=f"{prefix}removeall", value="Remove all the current watching ids", inline=False)
-    embed.add_field(name=f"{prefix}more", value="To see more infos about your current setup", inline=False)
-    embed.add_field(name=f"{prefix}restart", value="To restart the mewt sniper **Broken on Linux**", inline=False)
-    embed.add_field(name=f"{prefix}autorestart (minutes)", value="Starts autorestarting the bot every X minutes  **Broken on Linux**", inline=False)
-    embed.add_field(name=f"{prefix}autorestart off", value="Stops the autorestarter", inline=False)
-    embed.add_field(name=f"{prefix}autorestart", value="Shows you the autorestart status", inline=False)
-    embed.add_field(name=f"{prefix}screenshot", value="To take a screenshot of the current host machine", inline=False)
-    embed.add_field(name=f"{prefix}invite", value="To join JavaAutomation server", inline=False)
+    embed.add_field(name=f"{prefix}prefix", value="Change your prefix to anything you want **Reverts on Close**", inline=False)
+    embed.add_field(name=f"{prefix}cookie", value="Change your main cookie", inline=False)
+    embed.add_field(name=f"{prefix}altcookie", value="Change your alt cookie", inline=False)
+    embed.add_field(name=f"{prefix}robloxid", value="Input your Roblox userID for the inventory to load **Buggy**", inline=False)
+    embed.add_field(name=f"{prefix}inventory", value="Visibly view the iventory of the user from userID.txt", inline=False)
+    embed.add_field(name=f"{prefix}check main", value="Verify your Main cookie is valid", inline=False)
+    embed.add_field(name=f"{prefix}check alt", value="Verify your Alt cookie is valid", inline=False)
+    embed.add_field(name=f"{prefix}webhook", value="Change your webhook", inline=False)
+    embed.add_field(name=f"{prefix}token", value="Change your Discord bot token", inline=False)
+    embed.add_field(name=f"{prefix}speed", value="Change your scan speed", inline=False)
+    embed.add_field(name=f"{prefix}onlyfree off", value="Snipe both paid and free items", inline=False)
+    embed.add_field(name=f"{prefix}onlyfree on", value="Snipe free items only", inline=False)
+    embed.add_field(name=f"!add", value="Add an ID to the watchlist", inline=False)
+    embed.add_field(name=f"!remove", value="Remove an ID from the watchlist", inline=False)
+    embed.add_field(name=f"!watching", value="List all currently watched IDs", inline=False)
+    embed.add_field(name=f"!stats", value="View the current stats from Mewt", inline=False)
+    embed.add_field(name=f"{prefix}removeall", value="Remove all currently watched IDs", inline=False)
+    embed.add_field(name=f"{prefix}more", value="More info about your current setup", inline=False)
+    embed.add_field(name=f"{prefix}restart", value="Restart Mewt **Broken on Linux**", inline=False)
+    embed.add_field(name=f"{prefix}autorestart (minutes)", value="Turn on Autorestart and restart Mewt every X minutes **Broken on Linux**", inline=False)
+    embed.add_field(name=f"{prefix}autorestart off", value="Turn off Autorestart", inline=False)
+    embed.add_field(name=f"{prefix}autorestart", value="Autorestart status", inline=False)
+    embed.add_field(name=f"{prefix}screenshot", value="Take a screenshot of the current host machine **Does not work on a VPS**", inline=False)
+    embed.add_field(name=f"{prefix}invite", value="Join the JavaAutomation server", inline=False)
     embed.set_footer(text="Developed by: Java#9999 \nHelped by: Lag#1234 \nLinux Support by: Caleb N' Ash#5117")
     await ctx.send(embed=embed)
 
@@ -739,7 +726,7 @@ async def more(ctx):
     embed.add_field(name="Scan speed:", value=scan_speed, inline=False)
     embed.add_field(name="Watching:", value=watching if watching else "No items", inline=False)
     embed.add_field(name="Runtime:", value=runtime, inline=False)
-    embed.set_footer(text="A bot by Java#9999")
+    embed.set_footer(text="Developed by: Java#9999 \nHelped by: Lag#1234 \nLinux Support by: Caleb N' Ash#5117")
 
     await ctx.send(embed=embed)
 
@@ -1023,10 +1010,7 @@ async def check(ctx, cookie_type: str):
         await ctx.send(embed=embed)
 
 # Run main.py when JavaAutomation.py is executed
-python_executable = sys.executable
-script_path = os.path.join(os.path.dirname(__file__), 'main.py')
-
-subprocess.Popen([python_executable, script_path])
+subprocess.Popen(['python', 'main.py'])
 
 # Get the bot token from the settings
 bot_token = settings['MISC']['DISCORD_BOT']['TOKEN']
@@ -1065,3 +1049,4 @@ except (KeyboardInterrupt, SystemExit):
 while True:
     webhook_color = discord.Color.from_rgb(255, 182, 193)
     stage = 0
+
